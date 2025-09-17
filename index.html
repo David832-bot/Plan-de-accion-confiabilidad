@@ -3,46 +3,211 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TEST Plan de Acción</title>
+  <title>Plan de Acción Interactivo</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
-  <div class="container mx-auto p-8">
-    <h1 class="text-3xl font-bold mb-6">Plan de Acción Interactivo</h1>
+<div class="container mx-auto p-6 space-y-8">
 
-    <table class="min-w-full bg-white border">
-      <thead class="bg-gray-100">
-        <tr>
-          <th class="py-2 px-4">Actividad</th>
-          <th class="py-2 px-4">Responsable</th>
-          <th class="py-2 px-4">Plazo</th>
-        </tr>
-      </thead>
-      <tbody id="task-table-body"></tbody>
-    </table>
+  <h1 class="text-3xl font-bold text-center">Plan de Acción Interactivo</h1>
+  <p class="text-center text-gray-600 mb-6">División de Ingeniería y Confiabilidad</p>
+
+  <!-- RESUMEN -->
+  <div class="grid grid-cols-3 gap-4 text-center">
+    <div class="bg-yellow-100 p-4 rounded shadow">
+      <p class="text-yellow-700 font-semibold">Pendientes</p>
+      <p id="pending-count" class="text-3xl font-bold text-yellow-500">0</p>
+    </div>
+    <div class="bg-blue-100 p-4 rounded shadow">
+      <p class="text-blue-700 font-semibold">En Progreso</p>
+      <p id="progress-count" class="text-3xl font-bold text-blue-500">0</p>
+    </div>
+    <div class="bg-green-100 p-4 rounded shadow">
+      <p class="text-green-700 font-semibold">Completadas</p>
+      <p id="completed-count" class="text-3xl font-bold text-green-500">0</p>
+    </div>
   </div>
+
+  <!-- FILTROS -->
+  <div class="flex justify-center gap-4">
+    <button data-filter="Todos" class="filter-btn bg-blue-600 text-white px-4 py-2 rounded">Todos</button>
+    <button data-filter="Pendiente" class="filter-btn bg-gray-200 px-4 py-2 rounded">Pendientes</button>
+    <button data-filter="En Progreso" class="filter-btn bg-gray-200 px-4 py-2 rounded">En Progreso</button>
+    <button data-filter="Completado" class="filter-btn bg-gray-200 px-4 py-2 rounded">Completadas</button>
+  </div>
+
+  <!-- TABLA -->
+  <table class="min-w-full bg-white border">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="py-2 px-4">ID</th>
+        <th class="py-2 px-4">Objetivo</th>
+        <th class="py-2 px-4">Actividad</th>
+        <th class="py-2 px-4">Responsable</th>
+        <th class="py-2 px-4">Plazo</th>
+        <th class="py-2 px-4">Estado</th>
+      </tr>
+    </thead>
+    <tbody id="task-table-body"></tbody>
+  </table>
+
+  <!-- GRAFICOS -->
+  <div class="grid grid-cols-2 gap-8">
+    <div class="bg-white p-4 rounded shadow">
+      <h2 class="font-bold mb-2 text-center">Estado General</h2>
+      <canvas id="statusChart"></canvas>
+    </div>
+    <div class="bg-white p-4 rounded shadow">
+      <h2 class="font-bold mb-2 text-center">Avance por Semana</h2>
+      <canvas id="ganttChart"></canvas>
+    </div>
+  </div>
+</div>
 
 <script>
 const tasksData = [
-  {id:1,objectiveId:1,description:"Recopilar datos de confiabilidad",responsible:"S2 Bolaño",deadline:"Semana 1"},
-  {id:2,objectiveId:2,description:"Mesa de trabajo virtual Power BI",responsible:"S1 Toro",deadline:"Semana 2"},
-  {id:3,objectiveId:3,description:"Investigar con inspectores SAP",responsible:"TK Rodríguez",deadline:"Semana 3"}
+  // OBJETIVO 1
+  {id:1,objectiveId:1,description:"Recopilar datos de confiabilidad del trimestre anterior",responsible:"S2 Bolaño",deadline:"Semana 1",status:"Pendiente"},
+  {id:2,objectiveId:1,description:"Analizar datos por grupo aeronaval",responsible:"S1 Toro",deadline:"Semana 1",status:"Pendiente"},
+  {id:3,objectiveId:1,description:"Elaborar borradores de informes personalizados",responsible:"S1 Toro",deadline:"Semana 2",status:"Pendiente"},
+  {id:4,objectiveId:1,description:"Revisar y consolidar informes finales",responsible:"TK Rodríguez",deadline:"Semana 2",status:"Pendiente"},
+  {id:5,objectiveId:1,description:"Distribuir informes a jefes de grupo",responsible:"S2 Bolaño",deadline:"Semana 3",status:"Pendiente"},
+
+  // OBJETIVO 2
+  {id:6,objectiveId:2,description:"Mesa de trabajo virtual Power BI (licencias y avances)",responsible:"S1 Toro",deadline:"Semana 2",status:"Pendiente"},
+  {id:7,objectiveId:2,description:"Diseñar layout y gráficos para pestañas",responsible:"S1 Toro",deadline:"Semana 3",status:"Pendiente"},
+  {id:8,objectiveId:2,description:"Implementar nuevas pestañas en tablero Power BI",responsible:"S1 Toro",deadline:"Semana 4",status:"Pendiente"},
+  {id:9,objectiveId:2,description:"Realizar pruebas internas",responsible:"TK Rodríguez",deadline:"Semana 4",status:"Pendiente"},
+  {id:10,objectiveId:2,description:"Presentar y entregar pestañas a cada grupo",responsible:"S2 Bolaño",deadline:"Semana 5",status:"Pendiente"},
+
+  // OBJETIVO 3
+  {id:11,objectiveId:3,description:"Investigar con inspectores SAP la capacitación",responsible:"TK Rodríguez",deadline:"Semana 2",status:"Pendiente"},
+  {id:12,objectiveId:3,description:"Preparar presentaciones para capacitación (GANCE)",responsible:"S1 Toro",deadline:"Semana 3",status:"Pendiente"},
+  {id:13,objectiveId:3,description:"Definir cronograma de instrucción con SAP",responsible:"S2 Bolaño",deadline:"Semana 3",status:"Pendiente"},
+  {id:14,objectiveId:3,description:"Seleccionar y convocar participantes",responsible:"S1 Toro",deadline:"Semana 3",status:"Pendiente"},
+  {id:15,objectiveId:3,description:"Realizar capacitación con inspectores SAP",responsible:"TK Rodríguez",deadline:"Semana 4",status:"Pendiente"},
+  {id:16,objectiveId:3,description:"Validar efectividad con auditores de SAP",responsible:"S2 Bolaño",deadline:"Semana 5",status:"Pendiente"},
+
+  // OBJETIVO 4
+  {id:17,objectiveId:4,description:"Extraer datos de avisos de aviónica",responsible:"S1 Toro",deadline:"Semana 1",status:"Pendiente"},
+  {id:18,objectiveId:4,description:"Analizar problemas recurrentes",responsible:"S1 Toro",deadline:"Semana 2",status:"Pendiente"},
+  {id:19,objectiveId:4,description:"Identificar aeronaves con más avisos",responsible:"S1 Toro",deadline:"Semana 2",status:"Pendiente"},
+  {id:20,objectiveId:4,description:"Elaborar borrador informe de prioridades",responsible:"TK Rodríguez",deadline:"Semana 3",status:"Pendiente"},
+  {id:21,objectiveId:4,description:"Presentar informe a jefatura",responsible:"TK Rodríguez",deadline:"Semana 4",status:"Pendiente"},
+  {id:22,objectiveId:4,description:"Iniciar plan de renovación según prioridades",responsible:"S2 Bolaño",deadline:"Semana 5",status:"Pendiente"}
 ];
+
+let currentFilter = "Todos";
+
+function getFilteredTasks() {
+  if (currentFilter === "Todos") return tasksData;
+  return tasksData.filter(t => t.status === currentFilter);
+}
 
 function renderTable() {
   const tbody = document.getElementById('task-table-body');
   tbody.innerHTML = '';
-  tasksData.forEach(t=>{
-    tbody.innerHTML += `<tr class="border-b">
-      <td class="py-2 px-4">${t.description}</td>
-      <td class="py-2 px-4">${t.responsible}</td>
-      <td class="py-2 px-4">${t.deadline}</td>
-    </tr>`;
+  getFilteredTasks().forEach(t => {
+    tbody.innerHTML += `
+      <tr class="border-b">
+        <td class="py-2 px-4">${t.id}</td>
+        <td class="py-2 px-4">Objetivo ${t.objectiveId}</td>
+        <td class="py-2 px-4">${t.description}</td>
+        <td class="py-2 px-4">${t.responsible}</td>
+        <td class="py-2 px-4">${t.deadline}</td>
+        <td class="py-2 px-4">
+          <select data-id="${t.id}" class="border rounded p-1">
+            <option ${t.status==='Pendiente'?'selected':''}>Pendiente</option>
+            <option ${t.status==='En Progreso'?'selected':''}>En Progreso</option>
+            <option ${t.status==='Completado'?'selected':''}>Completado</option>
+          </select>
+        </td>
+      </tr>`;
+  });
+
+  document.querySelectorAll('select[data-id]').forEach(sel=>{
+    sel.addEventListener('change', e=>{
+      const id = parseInt(e.target.dataset.id);
+      const task = tasksData.find(x=>x.id===id);
+      task.status = e.target.value;
+      updateUI();
+    });
   });
 }
 
-document.addEventListener('DOMContentLoaded', renderTable);
+function updateCounters() {
+  const c = {'Pendiente':0,'En Progreso':0,'Completado':0};
+  tasksData.forEach(t=>c[t.status]++);
+  document.getElementById('pending-count').textContent = c['Pendiente'];
+  document.getElementById('progress-count').textContent = c['En Progreso'];
+  document.getElementById('completed-count').textContent = c['Completado'];
+}
+
+let statusChart, ganttChart;
+
+function updateCharts() {
+  const ctx = document.getElementById('statusChart');
+  const counts = {'Pendiente':0,'En Progreso':0,'Completado':0};
+  tasksData.forEach(t=>counts[t.status]++);
+
+  if (statusChart) statusChart.destroy();
+  statusChart = new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels:['Pendiente','En Progreso','Completado'],
+      datasets:[{
+        label:'Tareas',
+        data:[counts['Pendiente'],counts['En Progreso'],counts['Completado']],
+        backgroundColor:['#FDE68A','#93C5FD','#A7F3D0']
+      }]
+    },
+    options:{responsive:true,plugins:{legend:{display:false}}}
+  });
+
+  const gctx = document.getElementById('ganttChart');
+  const semanas = [...new Set(tasksData.map(t=>t.deadline))];
+  const datos = semanas.map(s=>tasksData.filter(t=>t.deadline===s).length);
+
+  if (ganttChart) ganttChart.destroy();
+  ganttChart = new Chart(gctx, {
+    type:'line',
+    data:{
+      labels:semanas,
+      datasets:[{
+        label:'Tareas por semana',
+        data:datos,
+        fill:true,
+        backgroundColor:'#BFDBFE',
+        borderColor:'#3B82F6'
+      }]
+    },
+    options:{responsive:true}
+  });
+}
+
+function updateUI(){
+  renderTable();
+  updateCounters();
+  updateCharts();
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.querySelectorAll('.filter-btn').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      currentFilter = e.target.dataset.filter;
+      document.querySelectorAll('.filter-btn').forEach(b=>{
+        b.classList.remove('bg-blue-600','text-white');
+        b.classList.add('bg-gray-200','text-gray-800');
+      });
+      e.target.classList.remove('bg-gray-200','text-gray-800');
+      e.target.classList.add('bg-blue-600','text-white');
+      updateUI();
+    });
+  });
+  updateUI();
+});
 </script>
 
 </body>
