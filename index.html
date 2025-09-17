@@ -55,6 +55,30 @@
         }
     </style>
 </head>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    renderTable();
+    updateControlBoxes();
+    createStatusChart();
+    createGanttChart();
+    renderParticipantCards();
+
+    document.querySelectorAll('.filter-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            currentFilter = e.target.dataset.filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-600', 'text-white');
+                btn.classList.add('bg-gray-200', 'text-gray-800');
+            });
+            e.target.classList.remove('bg-gray-200', 'text-gray-800');
+            e.target.classList.add('bg-blue-600', 'text-white');
+            renderTable();
+            updateCharts();
+        });
+    });
+});
+</script>
+    
 <body class="bg-gray-50 text-gray-800">
 
     <div class="container mx-auto p-4 md:p-8">
