@@ -14,20 +14,24 @@
   <h1 class="text-3xl font-bold text-center">Plan de Acción Interactivo</h1>
   <p class="text-center text-gray-600 mb-6">División de Ingeniería y Confiabilidad</p>
 
-  <!-- RESUMEN -->
-  <div class="grid grid-cols-3 gap-4 text-center">
-    <div class="bg-yellow-100 p-4 rounded shadow">
-      <p class="text-yellow-700 font-semibold">Pendientes</p>
-      <p id="pending-count" class="text-3xl font-bold text-yellow-500">0</p>
+  <!-- CONTROLES -->
+  <div class="flex justify-between items-center mb-4">
+    <div class="grid grid-cols-3 gap-4 text-center">
+      <div class="bg-yellow-100 p-4 rounded shadow">
+        <p class="text-yellow-700 font-semibold">Pendientes</p>
+        <p id="pending-count" class="text-3xl font-bold text-yellow-500">0</p>
+      </div>
+      <div class="bg-blue-100 p-4 rounded shadow">
+        <p class="text-blue-700 font-semibold">En Progreso</p>
+        <p id="progress-count" class="text-3xl font-bold text-blue-500">0</p>
+      </div>
+      <div class="bg-green-100 p-4 rounded shadow">
+        <p class="text-green-700 font-semibold">Completadas</p>
+        <p id="completed-count" class="text-3xl font-bold text-green-500">0</p>
+      </div>
     </div>
-    <div class="bg-blue-100 p-4 rounded shadow">
-      <p class="text-blue-700 font-semibold">En Progreso</p>
-      <p id="progress-count" class="text-3xl font-bold text-blue-500">0</p>
-    </div>
-    <div class="bg-green-100 p-4 rounded shadow">
-      <p class="text-green-700 font-semibold">Completadas</p>
-      <p id="completed-count" class="text-3xl font-bold text-green-500">0</p>
-    </div>
+
+    <button id="btnLogin" class="bg-gray-800 text-white px-4 py-2 rounded">🔐 Iniciar sesión</button>
   </div>
 
   <!-- FILTROS -->
@@ -67,22 +71,21 @@
 </div>
 
 <script>
-const tasksData = [
-  // OBJETIVO 1
+const PASSWORD = "DIMAV2024"; // <- CAMBIA ESTA CLAVE SI QUIERES
+
+const defaultTasks = [
   {id:1,objectiveId:1,description:"Recopilar datos de confiabilidad del trimestre anterior",responsible:"S2 Bolaño",deadline:"Semana 1",status:"Pendiente"},
   {id:2,objectiveId:1,description:"Analizar datos por grupo aeronaval",responsible:"S1 Toro",deadline:"Semana 1",status:"Pendiente"},
   {id:3,objectiveId:1,description:"Elaborar borradores de informes personalizados",responsible:"S1 Toro",deadline:"Semana 2",status:"Pendiente"},
   {id:4,objectiveId:1,description:"Revisar y consolidar informes finales",responsible:"TK Rodríguez",deadline:"Semana 2",status:"Pendiente"},
   {id:5,objectiveId:1,description:"Distribuir informes a jefes de grupo",responsible:"S2 Bolaño",deadline:"Semana 3",status:"Pendiente"},
 
-  // OBJETIVO 2
   {id:6,objectiveId:2,description:"Mesa de trabajo virtual Power BI (licencias y avances)",responsible:"S1 Toro",deadline:"Semana 2",status:"Pendiente"},
   {id:7,objectiveId:2,description:"Diseñar layout y gráficos para pestañas",responsible:"S1 Toro",deadline:"Semana 3",status:"Pendiente"},
   {id:8,objectiveId:2,description:"Implementar nuevas pestañas en tablero Power BI",responsible:"S1 Toro",deadline:"Semana 4",status:"Pendiente"},
   {id:9,objectiveId:2,description:"Realizar pruebas internas",responsible:"TK Rodríguez",deadline:"Semana 4",status:"Pendiente"},
   {id:10,objectiveId:2,description:"Presentar y entregar pestañas a cada grupo",responsible:"S2 Bolaño",deadline:"Semana 5",status:"Pendiente"},
 
-  // OBJETIVO 3
   {id:11,objectiveId:3,description:"Investigar con inspectores SAP la capacitación",responsible:"TK Rodríguez",deadline:"Semana 2",status:"Pendiente"},
   {id:12,objectiveId:3,description:"Preparar presentaciones para capacitación (GANCE)",responsible:"S1 Toro",deadline:"Semana 3",status:"Pendiente"},
   {id:13,objectiveId:3,description:"Definir cronograma de instrucción con SAP",responsible:"S2 Bolaño",deadline:"Semana 3",status:"Pendiente"},
@@ -90,7 +93,6 @@ const tasksData = [
   {id:15,objectiveId:3,description:"Realizar capacitación con inspectores SAP",responsible:"TK Rodríguez",deadline:"Semana 4",status:"Pendiente"},
   {id:16,objectiveId:3,description:"Validar efectividad con auditores de SAP",responsible:"S2 Bolaño",deadline:"Semana 5",status:"Pendiente"},
 
-  // OBJETIVO 4
   {id:17,objectiveId:4,description:"Extraer datos de avisos de aviónica",responsible:"S1 Toro",deadline:"Semana 1",status:"Pendiente"},
   {id:18,objectiveId:4,description:"Analizar problemas recurrentes",responsible:"S1 Toro",deadline:"Semana 2",status:"Pendiente"},
   {id:19,objectiveId:4,description:"Identificar aeronaves con más avisos",responsible:"S1 Toro",deadline:"Semana 2",status:"Pendiente"},
@@ -99,7 +101,13 @@ const tasksData = [
   {id:22,objectiveId:4,description:"Iniciar plan de renovación según prioridades",responsible:"S2 Bolaño",deadline:"Semana 5",status:"Pendiente"}
 ];
 
+let tasksData = JSON.parse(localStorage.getItem('tasksData')) || defaultTasks;
 let currentFilter = "Todos";
+let canEdit = false;
+
+function saveTasks() {
+  localStorage.setItem('tasksData', JSON.stringify(tasksData));
+}
 
 function getFilteredTasks() {
   if (currentFilter === "Todos") return tasksData;
@@ -118,7 +126,7 @@ function renderTable() {
         <td class="py-2 px-4">${t.responsible}</td>
         <td class="py-2 px-4">${t.deadline}</td>
         <td class="py-2 px-4">
-          <select data-id="${t.id}" class="border rounded p-1">
+          <select data-id="${t.id}" class="border rounded p-1" ${!canEdit?'disabled':''}>
             <option ${t.status==='Pendiente'?'selected':''}>Pendiente</option>
             <option ${t.status==='En Progreso'?'selected':''}>En Progreso</option>
             <option ${t.status==='Completado'?'selected':''}>Completado</option>
@@ -132,6 +140,7 @@ function renderTable() {
       const id = parseInt(e.target.dataset.id);
       const task = tasksData.find(x=>x.id===id);
       task.status = e.target.value;
+      saveTasks();
       updateUI();
     });
   });
@@ -146,7 +155,6 @@ function updateCounters() {
 }
 
 let statusChart, ganttChart;
-
 function updateCharts() {
   const ctx = document.getElementById('statusChart');
   const counts = {'Pendiente':0,'En Progreso':0,'Completado':0};
@@ -206,6 +214,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
       updateUI();
     });
   });
+
+  document.getElementById('btnLogin').addEventListener('click', ()=>{
+    const clave = prompt("Ingrese la contraseña para habilitar edición:");
+    if(clave === PASSWORD){
+      canEdit = true;
+      alert("✅ Edición habilitada");
+      updateUI();
+    } else {
+      alert("❌ Contraseña incorrecta");
+    }
+  });
+
   updateUI();
 });
 </script>
