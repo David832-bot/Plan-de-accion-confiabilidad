@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plan de Acción Interactivo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 250px;
+            max-height: 300px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 250px;
+            }
+        }
+        .gantt-container {
+            position: relative;
+            width: 100%;
+            height: 700px;
+            max-height: 800px;
+        }
+        .box-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        .box {
+            background-color: #ffffff;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 1.5rem;
+            text-align: center;
+        }
+        .participant-card {
+            border: 1px solid #e5e7eb;
+            transition: all 0.3s ease;
+        }
+        .participant-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transform: translateY(-5px);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Plan de Acción Interactivo</h1>
+            <p class="text-gray-600 mt-2">División de Ingeniería y Confiabilidad</p>
+        </header>
+
+        <main>
+            <!-- Resumen y Cuadros de Control -->
+            <section id="summary" class="mb-8 p-6 bg-white rounded-lg shadow-md">
+                <h2 class="text-2xl font-bold mb-4 text-center">Resumen del Proyecto</h2>
+                <p class="text-center text-gray-600 mb-6">Esta sección proporciona una vista general del estado actual de todas las actividades. Los cuadros de control y gráficos se actualizan automáticamente a medida que se modifica el estado de cada tarea, permitiendo un seguimiento visual e inmediato.</p>
+                
+                <div id="control-boxes" class="box-container mb-8">
+                    <div class="box bg-yellow-100 border-l-4 border-yellow-500">
+                        <p class="text-yellow-700 text-lg">Pendientes</p>
+                        <p id="pending-count" class="text-3xl font-bold text-yellow-500 mt-2">0</p>
+                    </div>
+                    <div class="box bg-blue-100 border-l-4 border-blue-500">
+                        <p class="text-blue-700 text-lg">En Progreso</p>
+                        <p id="progress-count" class="text-3xl font-bold text-blue-500 mt-2">0</p>
+                    </div>
+                    <div class="box bg-green-100 border-l-4 border-green-500">
+                        <p class="text-green-700 text-lg">Completadas</p>
+                        <p id="completed-count" class="text-3xl font-bold text-green-500 mt-2">0</p>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-8">
+                    <div>
+                        <h3 class="text-xl font-semibold text-center mb-2">Estado General de Tareas</h3>
+                        <div class="chart-container">
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-center mb-2">Cronograma General</h3>
+                        <div class="gantt-container">
+                            <canvas id="ganttChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Nuevo Panel de Resumen por Participante con lista de tareas -->
+            <section id="participant-summary" class="p-6 bg-white rounded-lg shadow-md mb-8">
+                <h2 class="text-2xl font-bold mb-4 text-center">Tareas por Participante</h2>
+                <p class="text-center text-gray-600 mb-6">Aquí puedes ver un resumen de las tareas asignadas a cada miembro del equipo.</p>
+                <div id="participant-summary-container" class="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                </div>
+            </section>
+
+            <!-- Filtros y Tareas -->
+            <section id="tasks" class="p-6 bg-white rounded-lg shadow-md">
+                 <h2 class="text-2xl font-bold mb-4 text-center">Detalle de Actividades</h2>
+                 <p class="text-center text-gray-600 mb-6">Utilice los filtros para explorar los objetivos específicos del plan de acción. Cambie el estado de cualquier tarea directamente en la tabla para actualizar el progreso del proyecto.</p>
+                <div class="flex flex-wrap justify-center gap-2 md:gap-4 mb-6">
+                    <button data-filter="all" class="filter-btn bg-blue-600 text-white py-2 px-4 rounded-lg shadow hover:bg-blue-700 transition">Ver Todo</button>
+                    <button data-filter="1" class="filter-btn bg-gray-200 text-gray-800 py-2 px-4 rounded-lg shadow hover:bg-gray-300 transition">Informes</button>
+                    <button data-filter="2" class="filter-btn bg-gray-200 text-gray-800 py-2 px-4 rounded-lg shadow hover:bg-gray-300 transition">Power BI</button>
+                    <button data-filter="3" class="filter-btn bg-gray-200 text-gray-800 py-2 px-4 rounded-lg shadow hover:bg-gray-300 transition">Capacitación</button>
+                    <button data-filter="4" class="filter-btn bg-gray-200 text-gray-800 py-2 px-4 rounded-lg shadow hover:bg-gray-300 transition">Aviónica</button>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-white">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="py-3 px-4 text-left font-semibold text-sm">Actividad</th>
+                                <th class="py-3 px-4 text-left font-semibold text-sm">Responsable</th>
+                                <th class="py-3 px-4 text-left font-semibold text-sm">Plazo</th>
+                                <th class="py-3 px-4 text-left font-semibold text-sm">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="task-table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const tasksData = [
+            // Objetivo 1 - Informes
+            { id: 1, objectiveId: 1, description: "1.1 Recopilar datos de confiabilidad del trimestre anterior (fallos, horas de vuelo, etc.).", responsible: "S2 Bolaño Elkin (Ala Fija)", deadline: "Semana 1", status: "Pendiente", timeline: [0, 1] },
+            { id: 2, objectiveId: 1, description: "1.2 Analizar los datos por grupo aeronaval (GANCE, GANPA, GANCA).", responsible: "S1 Toro Edgar (Ala Rotatoria)", deadline: "Semana 2", status: "Pendiente", timeline: [1, 2] },
+            { id: 3, objectiveId: 1, description: "1.3 Elaborar borradores de los informes personalizados.", responsible: "S1 Toro Edgar y S2 Bolaño Elkin", deadline: "Semana 3", status: "Pendiente", timeline: [2, 3] },
+            { id: 4, objectiveId: 1, description: "1.4 Revisar borradores y consolidar los informes finales.", responsible: "TK Rodríguez David", deadline: "Semana 4", status: "Pendiente", timeline: [3, 4] },
+            { id: 5, objectiveId: 1, description: "1.5 Distribuir informes a los jefes de grupo aeronaval.", responsible: "TK Rodríguez David", deadline: "Semana 5", status: "Pendiente", timeline: [4, 5] },
+
+            // Objetivo 2 - Power BI
+            { id: 6, objectiveId: 2, description: "2.1 Realizar una mesa de trabajo virtual (45 min) para socializar avances en Power BI y discutir el uso de licencias para tomar decisiones conjuntas.", responsible: "S1 Toro Edgar y S2 Bolaño Elkin", deadline: "Semana 1", status: "Pendiente", timeline: [0, 1] },
+            { id: 7, objectiveId: 2, description: "2.2 Diseñar el layout y los gráficos para cada pestaña.", responsible: "S1 Toro Edgar y S2 Bolaño Elkin", deadline: "Semana 2", status: "Pendiente", timeline: [1, 2] },
+            { id: 8, objectiveId: 2, description: "2.3 Implementar las nuevas pestañas en el tablero de Power BI existente.", responsible: "S1 Toro Edgar", deadline: "Semana 3", status: "Pendiente", timeline: [2, 3] },
+            { id: 9, objectiveId: 2, description: "2.4 Realizar pruebas internas para asegurar funcionalidad y precisión.", responsible: "S1 Toro Edgar y S2 Bolaño Elkin", deadline: "Semana 4", status: "Pendiente", timeline: [3, 4] },
+            { id: 10, objectiveId: 2, description: "2.5 Presentar y entregar las pestañas personalizadas a cada grupo.", responsible: "TK Rodríguez David", deadline: "Semana 5", status: "Pendiente", timeline: [4, 5] },
+
+            // Objetivo 3 - Capacitación (actualizado)
+            { id: 11, objectiveId: 3, description: "3.1 Investigar con inspectores SAP (Aeronavegabilidad) la posibilidad de que realicen la capacitación sobre reportes y avisos.", responsible: "TK Rodríguez David", deadline: "Semana 1-2", status: "Pendiente", timeline: [0, 2] },
+            { id: 12, objectiveId: 3, description: "3.2 Preparar presentaciones para la capacitación, iniciando con el grupo GANCE.", responsible: "S1 Toro Edgar", deadline: "Semana 3", status: "Pendiente", timeline: [2, 3] },
+            { id: 13, objectiveId: 3, description: "3.3 Definir cronograma de instrucción junto con inspectores SAP.", responsible: "S1 Toro Edgar", deadline: "Semana 4", status: "Pendiente", timeline: [3, 4] },
+            { id: 14, objectiveId: 3, description: "3.4 Seleccionar y convocar a las personas implicadas de los grupos para asistir a la capacitación.", responsible: "S1 Toro Edgar", deadline: "Semana 5", status: "Pendiente", timeline: [4, 5] },
+            { id: 15, objectiveId: 3, description: "3.5 Realizar la capacitación (inspectores SAP).", responsible: "Inspectores SAP", deadline: "Semana 6-8", status: "Pendiente", timeline: [5, 8] },
+            { id: 16, objectiveId: 3, description: "3.6 Validar la efectividad de la capacitación con apoyo de los auditores de SAP.", responsible: "Auditores SAP", deadline: "Semana 9", status: "Pendiente", timeline: [8, 9] },
+
+            // Objetivo 4 - Aviónica
+            { id: 17, objectiveId: 4, description: "4.1 Extraer datos de avisos de aviónica del tablero de confiabilidad.", responsible: "S2 Bolaño Elkin", deadline: "Semana 1", status: "Pendiente", timeline: [0, 1] },
+            { id: 18, objectiveId: 4, description: "4.2 Analizar y categorizar problemas recurrentes por tipo de aeronave y componente.", responsible: "S2 Bolaño Elkin", deadline: "Semana 2", status: "Pendiente", timeline: [1, 2] },
+            { id: 19, objectiveId: 4, description: "4.3 Identificar aeronaves con mayor número de avisos de aviónica.", responsible: "S2 Bolaño Elkin", deadline: "Semana 3", status: "Pendiente", timeline: [2, 3] },
+            { id: 20, objectiveId: 4, description: "4.4 Elaborar borrador de informe de prioridades de renovación.", responsible: "S2 Bolaño Elkin", deadline: "Semana 4", status: "Pendiente", timeline: [3, 4] },
+            { id: 21, objectiveId: 4, description: "4.5 Presentar el informe de prioridades a la jefatura para su aprobación.", responsible: "TK Rodríguez David", deadline: "Semana 5", status: "Pendiente", timeline: [4, 5] },
+            { id: 22, objectiveId: 4, description: "4.6 Iniciar gestiones para el plan de renovación con base en prioridades definidas.", responsible: "TK Rodríguez David", deadline: "Semana 6-12", status: "Pendiente", timeline: [5, 12] },
+        ];
+
+        /* ---------------- Funciones existentes para renderizado (sin cambios) ---------------- */
+        let statusChart, ganttChart;
+        let currentFilter = 'all';
+
+        const statusColors = {
+            'Pendiente': '#FBBF24',
+            'En Progreso': '#3B82F6',
+            'Completado': '#10B981'
+        };
+        
+        const objectiveColors = [
+            'rgba(59, 130, 246, 0.7)',
+            'rgba(239, 68, 68, 0.7)',
+            'rgba(245, 158, 11, 0.7)',
+            'rgba(16, 185, 129, 0.7)'
+        ];
+
+        const getStatusCounts = () => {
+            const counts = { 'Pendiente': 0, 'En Progreso': 0, 'Completado': 0 };
+            tasksData.forEach(task => counts[task.status]++);
+            return counts;
+        };
+
+        const updateControlBoxes = () => {
+            const counts = getStatusCounts();
+            document.getElementById('pending-count').innerText = counts['Pendiente'];
+            document.getElementById('progress-count').innerText = counts['En Progreso'];
+            document.getElementById('completed-count').innerText = counts['Completado'];
+        };
+
+        const groupTasksByResponsible = () => {
+            const summary = {};
+            tasksData.forEach(task => {
+                const names = task.responsible.split(' y '); 
+                names.forEach(name => {
+                    const trimmedName = name.trim();
+                    if (!summary[trimmedName]) {
+                        summary[trimmedName] = { 'Pendiente': 0, 'En Progreso': 0, 'Completado': 0 };
+                    }
+                    summary[trimmedName][task.status]++;
+                });
+            });
+            return summary;
+        };
+
+        const renderParticipantCards = () => {
+            const container = document.getElementById('participant-summary-container');
+            container.innerHTML = '';
+            const groupedTasks = groupTasksByResponsible();
+            
+            for (const name in groupedTasks) {
+                const data = groupedTasks[name];
+                const card = document.createElement('div');
+                card.className = "participant-card p-6 bg-white rounded-lg shadow-md flex flex-col items-center";
+                
+                card.innerHTML = `
+                    <h4 class="font-bold text-xl mb-4 text-center w-full">${name}</h4>
+                    <div class="text-sm text-gray-700 w-full text-center">
+                        <p class="font-semibold text-yellow-600">Pendientes: ${data['Pendiente']}</p>
+                        <p class="font-semibold text-blue-600">En Progreso: ${data['En Progreso']}</p>
+                        <p class="font-semibold text-green-600">Completadas: ${data['Completado']}</p>
+                    </div>
+                `;
+                container.appendChild(card);
+            }
+        };
+
+        const renderTable = () => {
+            const tableBody = document.getElementById('task-table-body');
+            tableBody.innerHTML = '';
+            
+            const filteredTasks = tasksData.filter(task => currentFilter === 'all' || task.objectiveId == currentFilter);
+            filteredTasks.forEach(task => {
+                const row = document.createElement('tr');
+                row.className = 'border-b';
+                const statusSelect = `
+                    <select data-id="${task.id}" class="status-select bg-transparent rounded p-1 border
