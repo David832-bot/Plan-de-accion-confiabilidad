@@ -14,7 +14,7 @@
   <h1 class="text-3xl font-bold text-center">Plan de Acción Interactivo</h1>
   <p class="text-center text-gray-600 mb-6">División de Ingeniería y Confiabilidad</p>
 
-  <!-- CONTROLES -->
+  <!-- CONTADORES Y BOTÓN LOGIN -->
   <div class="flex justify-between items-center mb-4">
     <div class="grid grid-cols-3 gap-4 text-center">
       <div class="bg-yellow-100 p-4 rounded shadow">
@@ -71,42 +71,23 @@
 </div>
 
 <script>
-const PASSWORD = "DIMAV2024"; // <- CAMBIA ESTA CLAVE SI QUIERES
+const API_URL = "https://script.google.com/macros/s/AKfycbziwTWsFqJC7S-5_wh1V-5dD8Q-jFDR2oVAMBhL1MS6Z_J0zZRIlkestl2sTQSFEO70/exec";
+const PASSWORD = "DIMAV2024";
 
-const defaultTasks = [
-  {id:1,objectiveId:1,description:"Recopilar datos de confiabilidad del trimestre anterior",responsible:"S2 Bolaño",deadline:"Semana 1",status:"Pendiente"},
-  {id:2,objectiveId:1,description:"Analizar datos por grupo aeronaval",responsible:"S1 Toro",deadline:"Semana 1",status:"Pendiente"},
-  {id:3,objectiveId:1,description:"Elaborar borradores de informes personalizados",responsible:"S1 Toro",deadline:"Semana 2",status:"Pendiente"},
-  {id:4,objectiveId:1,description:"Revisar y consolidar informes finales",responsible:"TK Rodríguez",deadline:"Semana 2",status:"Pendiente"},
-  {id:5,objectiveId:1,description:"Distribuir informes a jefes de grupo",responsible:"S2 Bolaño",deadline:"Semana 3",status:"Pendiente"},
-
-  {id:6,objectiveId:2,description:"Mesa de trabajo virtual Power BI (licencias y avances)",responsible:"S1 Toro",deadline:"Semana 2",status:"Pendiente"},
-  {id:7,objectiveId:2,description:"Diseñar layout y gráficos para pestañas",responsible:"S1 Toro",deadline:"Semana 3",status:"Pendiente"},
-  {id:8,objectiveId:2,description:"Implementar nuevas pestañas en tablero Power BI",responsible:"S1 Toro",deadline:"Semana 4",status:"Pendiente"},
-  {id:9,objectiveId:2,description:"Realizar pruebas internas",responsible:"TK Rodríguez",deadline:"Semana 4",status:"Pendiente"},
-  {id:10,objectiveId:2,description:"Presentar y entregar pestañas a cada grupo",responsible:"S2 Bolaño",deadline:"Semana 5",status:"Pendiente"},
-
-  {id:11,objectiveId:3,description:"Investigar con inspectores SAP la capacitación",responsible:"TK Rodríguez",deadline:"Semana 2",status:"Pendiente"},
-  {id:12,objectiveId:3,description:"Preparar presentaciones para capacitación (GANCE)",responsible:"S1 Toro",deadline:"Semana 3",status:"Pendiente"},
-  {id:13,objectiveId:3,description:"Definir cronograma de instrucción con SAP",responsible:"S2 Bolaño",deadline:"Semana 3",status:"Pendiente"},
-  {id:14,objectiveId:3,description:"Seleccionar y convocar participantes",responsible:"S1 Toro",deadline:"Semana 3",status:"Pendiente"},
-  {id:15,objectiveId:3,description:"Realizar capacitación con inspectores SAP",responsible:"TK Rodríguez",deadline:"Semana 4",status:"Pendiente"},
-  {id:16,objectiveId:3,description:"Validar efectividad con auditores de SAP",responsible:"S2 Bolaño",deadline:"Semana 5",status:"Pendiente"},
-
-  {id:17,objectiveId:4,description:"Extraer datos de avisos de aviónica",responsible:"S1 Toro",deadline:"Semana 1",status:"Pendiente"},
-  {id:18,objectiveId:4,description:"Analizar problemas recurrentes",responsible:"S1 Toro",deadline:"Semana 2",status:"Pendiente"},
-  {id:19,objectiveId:4,description:"Identificar aeronaves con más avisos",responsible:"S1 Toro",deadline:"Semana 2",status:"Pendiente"},
-  {id:20,objectiveId:4,description:"Elaborar borrador informe de prioridades",responsible:"TK Rodríguez",deadline:"Semana 3",status:"Pendiente"},
-  {id:21,objectiveId:4,description:"Presentar informe a jefatura",responsible:"TK Rodríguez",deadline:"Semana 4",status:"Pendiente"},
-  {id:22,objectiveId:4,description:"Iniciar plan de renovación según prioridades",responsible:"S2 Bolaño",deadline:"Semana 5",status:"Pendiente"}
-];
-
-let tasksData = JSON.parse(localStorage.getItem('tasksData')) || defaultTasks;
+let tasksData = [];
 let currentFilter = "Todos";
 let canEdit = false;
 
-function saveTasks() {
-  localStorage.setItem('tasksData', JSON.stringify(tasksData));
+async function loadTasks() {
+  const res = await fetch(API_URL);
+  tasksData = await res.json();
+}
+
+async function saveTask(id, newStatus) {
+  await fetch(API_URL, {
+    method: 'POST',
+    body: JSON.stringify({id, status:newStatus})
+  });
 }
 
 function getFilteredTasks() {
@@ -136,11 +117,11 @@ function renderTable() {
   });
 
   document.querySelectorAll('select[data-id]').forEach(sel=>{
-    sel.addEventListener('change', e=>{
-      const id = parseInt(e.target.dataset.id);
-      const task = tasksData.find(x=>x.id===id);
+    sel.addEventListener('change', async e=>{
+      const id = e.target.dataset.id;
+      const task = tasksData.find(x=>x.id == id);
       task.status = e.target.value;
-      saveTasks();
+      await saveTask(id, task.status);
       updateUI();
     });
   });
@@ -201,7 +182,7 @@ function updateUI(){
   updateCharts();
 }
 
-document.addEventListener('DOMContentLoaded', ()=>{
+document.addEventListener('DOMContentLoaded', async ()=>{
   document.querySelectorAll('.filter-btn').forEach(btn=>{
     btn.addEventListener('click', e=>{
       currentFilter = e.target.dataset.filter;
@@ -226,6 +207,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
   });
 
+  await loadTasks();
   updateUI();
 });
 </script>
