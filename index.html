@@ -34,16 +34,22 @@
     <button id="btnLogin" class="bg-gray-800 text-white px-4 py-2 rounded">🔐 Iniciar sesión</button>
   </div>
 
+  <!-- 📋 AVANCE POR OBJETIVO -->
+  <div class="bg-white p-4 rounded shadow mt-6">
+    <h2 class="text-xl font-bold mb-3 text-center">🎯 Avance por Objetivo</h2>
+    <ul id="objective-list" class="space-y-2"></ul>
+  </div>
+
   <!-- FILTROS -->
-  <div class="flex justify-center gap-4">
+  <div class="flex justify-center gap-4 mt-6">
     <button data-filter="Todos" class="filter-btn bg-blue-600 text-white px-4 py-2 rounded">Todos</button>
     <button data-filter="Pendiente" class="filter-btn bg-gray-200 px-4 py-2 rounded">Pendientes</button>
     <button data-filter="En Progreso" class="filter-btn bg-gray-200 px-4 py-2 rounded">En Progreso</button>
     <button data-filter="Completado" class="filter-btn bg-gray-200 px-4 py-2 rounded">Completadas</button>
   </div>
 
-  <!-- TABLA -->
-  <table class="min-w-full bg-white border">
+  <!-- TABLA DE ACTIVIDADES -->
+  <table class="min-w-full bg-white border mt-4">
     <thead class="bg-gray-100">
       <tr>
         <th class="py-2 px-4">ID</th>
@@ -68,6 +74,13 @@
       <canvas id="ganttChart"></canvas>
     </div>
   </div>
+
+  <!-- GRAFICO DE OBJETIVOS -->
+  <div class="bg-white p-4 rounded shadow col-span-2">
+    <h2 class="font-bold mb-2 text-center">Avance % por Objetivo</h2>
+    <canvas id="objectiveChart"></canvas>
+  </div>
+
 </div>
 
 <script>
@@ -102,7 +115,7 @@ function renderTable() {
     tbody.innerHTML += `
       <tr class="border-b">
         <td class="py-2 px-4">${t.id}</td>
-        <td class="py-2 px-4">Objetivo ${t.objectiveId}</td>
+        <td class="py-2 px-4">${t.objectiveId}</td>
         <td class="py-2 px-4">${t.description}</td>
         <td class="py-2 px-4">${t.responsible}</td>
         <td class="py-2 px-4">${t.deadline}</td>
@@ -135,7 +148,8 @@ function updateCounters() {
   document.getElementById('completed-count').textContent = c['Completado'];
 }
 
-let statusChart, ganttChart;
+let statusChart, ganttChart, objectiveChart;
+
 function updateCharts() {
   const ctx = document.getElementById('statusChart');
   const counts = {'Pendiente':0,'En Progreso':0,'Completado':0};
@@ -174,12 +188,64 @@ function updateCharts() {
     },
     options:{responsive:true}
   });
+
+  const octx = document.getElementById('objectiveChart');
+  const objetivos = [...new Set(tasksData.map(t=>t.objectiveId))];
+  const porcentajes = objetivos.map(obj => {
+    const total = tasksData.filter(t => t.objectiveId === obj).length;
+    const comp = tasksData.filter(t => t.objectiveId === obj && t.status === 'Completado').length;
+    return Math.round((comp / total) * 100);
+  });
+
+  if (objectiveChart) objectiveChart.destroy();
+  objectiveChart = new Chart(octx, {
+    type:'bar',
+    data:{
+      labels:objetivos,
+      datasets:[{
+        label:'% Completado',
+        data:porcentajes,
+        backgroundColor:'#86EFAC'
+      }]
+    },
+    options:{
+      responsive:true,
+      scales:{y:{beginAtZero:true, max:100}},
+      plugins:{tooltip:{callbacks:{label:ctx=>ctx.parsed.y + '%'}}}
+    }
+  });
+}
+
+function renderObjectiveList() {
+  const container = document.getElementById('objective-list');
+  container.innerHTML = '';
+
+  const objetivos = [...new Set(tasksData.map(t => t.objectiveId))];
+
+  objetivos.forEach(obj => {
+    const actividades = tasksData.filter(t => t.objectiveId === obj);
+    const total = actividades.length;
+    const completadas = actividades.filter(t => t.status === 'Completado').length;
+    const porcentaje = Math.round((completadas / total) * 100);
+
+    container.innerHTML += `
+      <li class="border rounded p-2 flex items-center gap-4">
+        <span class="w-24 font-bold text-center">Objetivo ${obj}</span>
+        <div class="flex-1 bg-gray-200 rounded-full h-3">
+          <div class="bg-green-400 h-3 rounded-full" style="width:${porcentaje}%;"></div>
+        </div>
+        <span class="text-sm text-gray-600">${completadas}/${total} actividades</span>
+        <span class="font-bold text-green-700">${porcentaje}%</span>
+      </li>
+    `;
+  });
 }
 
 function updateUI(){
   renderTable();
   updateCounters();
   updateCharts();
+  renderObjectiveList();
 }
 
 document.addEventListener('DOMContentLoaded', async ()=>{
