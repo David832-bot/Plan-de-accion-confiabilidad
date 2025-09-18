@@ -87,6 +87,13 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbziwTWsFqJC7S-5_wh1V-5dD8Q-jFDR2oVAMBhL1MS6Z_J0zZRIlkestl2sTQSFEO70/exec";
 const PASSWORD = "DIMAV2024";
 
+const OBJECTIVE_NAMES = {
+  1: "Informes de Confiabilidad",
+  2: "Power BI",
+  3: "Capacitación (actualizada con SAP)",
+  4: "Aviónica"
+};
+
 let tasksData = [];
 let currentFilter = "Todos";
 let canEdit = false;
@@ -115,7 +122,7 @@ function renderTable() {
     tbody.innerHTML += `
       <tr class="border-b">
         <td class="py-2 px-4">${t.id}</td>
-        <td class="py-2 px-4">${t.objectiveId}</td>
+        <td class="py-2 px-4">Objetivo ${t.objectiveId}: ${OBJECTIVE_NAMES[t.objectiveId]}</td>
         <td class="py-2 px-4">${t.description}</td>
         <td class="py-2 px-4">${t.responsible}</td>
         <td class="py-2 px-4">${t.deadline}</td>
@@ -201,7 +208,7 @@ function updateCharts() {
   objectiveChart = new Chart(octx, {
     type:'bar',
     data:{
-      labels:objetivos,
+      labels:objetivos.map(o=>`Obj ${o}: ${OBJECTIVE_NAMES[o]}`),
       datasets:[{
         label:'% Completado',
         data:porcentajes,
@@ -230,7 +237,7 @@ function renderObjectiveList() {
 
     container.innerHTML += `
       <li class="border rounded p-2 flex items-center gap-4">
-        <span class="w-24 font-bold text-center">Objetivo ${obj}</span>
+        <span class="font-bold text-center">Objetivo ${obj}: ${OBJECTIVE_NAMES[obj]}</span>
         <div class="flex-1 bg-gray-200 rounded-full h-3">
           <div class="bg-green-400 h-3 rounded-full" style="width:${porcentaje}%;"></div>
         </div>
