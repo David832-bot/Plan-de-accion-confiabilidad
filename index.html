@@ -1,21 +1,17 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Plan de Acción Interactivo</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Plan de Acción - Confiabilidad</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50 text-gray-800">
+<div class="container mx-auto p-6 space-y-6">
+  <h1 class="text-3xl font-bold text-center">Plan de Acción - Confiabilidad</h1>
 
-<div class="container mx-auto p-6 space-y-8">
-
-  <h1 class="text-3xl font-bold text-center">Plan de Acción Interactivo</h1>
-  <p class="text-center text-gray-600 mb-6">División de Ingeniería y Confiabilidad</p>
-
-  <!-- CONTADORES Y BOTÓN LOGIN -->
-  <div class="flex justify-between items-center mb-4">
-    <div class="grid grid-cols-3 gap-4 text-center">
+  <div class="flex justify-between items-center">
+    <div class="grid grid-cols-3 gap-4 text-center w-2/3">
       <div class="bg-yellow-100 p-4 rounded shadow">
         <p class="text-yellow-700 font-semibold">Pendientes</p>
         <p id="pending-count" class="text-3xl font-bold text-yellow-500">0</p>
@@ -33,103 +29,123 @@
     <button id="btnLogin" class="bg-gray-800 text-white px-4 py-2 rounded">🔐 Iniciar sesión</button>
   </div>
 
-  <!-- 📋 RESUMEN DE OBJETIVOS -->
-  <div class="bg-white p-4 rounded shadow">
-    <h2 class="text-xl font-bold mb-3 text-center">🎯 Avance por Objetivo</h2>
-    <ul id="objective-summary" class="space-y-2"></ul>
-  </div>
+  <!-- resumen por objetivo (barras grandes) -->
+  <div id="objective-summary" class="bg-white p-4 rounded shadow"></div>
 
-  <!-- FILTROS -->
-  <div class="flex justify-center gap-4 mt-6">
+  <!-- filtros -->
+  <div class="flex gap-3">
     <button data-filter="Todos" class="filter-btn bg-blue-600 text-white px-4 py-2 rounded">Todos</button>
     <button data-filter="Pendiente" class="filter-btn bg-gray-200 px-4 py-2 rounded">Pendientes</button>
     <button data-filter="En Progreso" class="filter-btn bg-gray-200 px-4 py-2 rounded">En Progreso</button>
     <button data-filter="Completado" class="filter-btn bg-gray-200 px-4 py-2 rounded">Completadas</button>
   </div>
 
-  <!-- TABLA AGRUPADA POR OBJETIVO -->
-  <div id="grouped-table" class="mt-6 space-y-10"></div>
-
+  <!-- tabla agrupada -->
+  <div id="grouped-table" class="mt-4 space-y-8"></div>
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbziwTWsFqJC7S-5_wh1V-5dD8Q-jFDR2oVAMBhL1MS6Z_J0zZRIlkestl2sTQSFEO70/exec";
+/* CONFIG */
+const API_URL = "https://script.google.com/macros/s/AKfycbziwTWsFqJC7S-5_wh1V-5dD8Q-jFDR2oVAMBhL1MS6Z_J0zZRIlkestl2sTQSFEO70/exec"; // tu URL
 const PASSWORD = "DIMAV2024";
 
 const OBJECTIVE_NAMES = {
-  1: "Informes de Confiabilidad",
-  2: "Power BI",
-  3: "Capacitación (actualizada con SAP)",
-  4: "Aviónica"
+  "1": "Informes de Confiabilidad",
+  "2": "Power BI",
+  "3": "Capacitación (actualizada con SAP)",
+  "4": "Aviónica"
 };
 
+/* estado */
 let tasksData = [];
 let currentFilter = "Todos";
 let canEdit = false;
 
-async function loadTasks() {
+/* util */
+function safeKey(x){ return (x===null||x===undefined)?'':String(x).trim(); }
+
+/* fetch */
+async function loadTasks(){
   const res = await fetch(API_URL);
   tasksData = await res.json();
+  // normalizar por si faltan campos
+  tasksData = tasksData.map(t => ({
+    id: safeKey(t.id),
+    objectiveId: safeKey(t.objectiveId) || 'Sin objetivo',
+    description: safeKey(t.description),
+    responsible: safeKey(t.responsible),
+    deadline: safeKey(t.deadline),
+    status: safeKey(t.status) || 'Pendiente'
+  }));
 }
 
-async function saveTask(id, newStatus) {
+/* save */
+async function saveTask(id, newStatus){
   await fetch(API_URL, {
     method: 'POST',
-    body: JSON.stringify({id, status:newStatus})
+    body: JSON.stringify({ id: String(id), status: newStatus })
   });
 }
 
-function getFilteredTasks() {
-  if (currentFilter === "Todos") return tasksData;
-  return tasksData.filter(t => t.status === currentFilter);
+/* agrupación ordenada: ensure objectives order 1..4 then others */
+function getObjectivesOrdered(){
+  const set = new Set(tasksData.map(t => t.objectiveId));
+  // try to place 1..4 first
+  const ordered = [];
+  ['1','2','3','4'].forEach(k=>{ if(set.has(k)) { ordered.push(k); set.delete(k); } });
+  // remaining
+  set.forEach(x=>ordered.push(x));
+  return ordered;
 }
 
-function renderObjectiveSummary() {
-  const container = document.getElementById('objective-summary');
-  container.innerHTML = '';
-  const objetivos = [...new Set(tasksData.map(t=>t.objectiveId))];
-
+/* UI: resumen superior */
+function renderObjectiveSummary(){
+  const el = document.getElementById('objective-summary');
+  el.innerHTML = '';
+  const objetivos = getObjectivesOrdered();
   objetivos.forEach(obj => {
-    const group = tasksData.filter(t=>t.objectiveId === obj);
+    const group = tasksData.filter(t => t.objectiveId === obj);
     const total = group.length;
-    const comp = group.filter(t=>t.status === 'Completado').length;
-    const porcentaje = Math.round((comp/total)*100);
-
-    container.innerHTML += `
-      <li class="border rounded p-3 flex items-center gap-4">
-        <span class="font-bold w-1/3">Objetivo ${obj}: ${OBJECTIVE_NAMES[obj]}</span>
+    const comp = group.filter(t => t.status === 'Completado').length;
+    const pct = total ? Math.round((comp/total)*100) : 0;
+    const name = OBJECTIVE_NAMES[obj] || (obj === 'Sin objetivo' ? 'Sin objetivo' : `Objetivo ${obj}`);
+    el.innerHTML += `
+      <div class="border rounded p-3 mb-2 flex items-center gap-4">
+        <div class="w-1/4 font-bold">${name}</div>
         <div class="flex-1 bg-gray-200 rounded-full h-4">
-          <div class="bg-green-500 h-4 rounded-full" style="width:${porcentaje}%"></div>
+          <div class="bg-green-500 h-4 rounded-full" style="width:${pct}%"></div>
         </div>
-        <span class="text-sm text-gray-600">${comp}/${total} completadas</span>
-        <span class="font-bold text-green-700">${porcentaje}%</span>
-      </li>
+        <div class="w-40 text-right">${comp}/${total} — <strong>${pct}%</strong></div>
+      </div>
     `;
   });
 }
 
-function renderGroupedTable() {
+/* tabla agrupada por objetivo */
+function renderGroupedTable(){
   const container = document.getElementById('grouped-table');
   container.innerHTML = '';
-
-  const tasks = getFilteredTasks();
-  const objetivos = [...new Set(tasks.map(t=>t.objectiveId))];
+  const tasks = (currentFilter === 'Todos') ? tasksData : tasksData.filter(t => t.status === currentFilter);
+  const objetivos = getObjectivesOrdered();
 
   objetivos.forEach(obj => {
-    const group = tasks.filter(t=>t.objectiveId === obj);
+    const group = tasks.filter(t => t.objectiveId === obj);
+    if (group.length === 0) return;
     const total = group.length;
-    const comp = group.filter(t=>t.status === 'Completado').length;
-    const porcentaje = Math.round((comp/total)*100);
+    const comp = group.filter(t=>t.status==='Completado').length;
+    const pct = Math.round((comp/total)*100);
+    const name = OBJECTIVE_NAMES[obj] || (obj === 'Sin objetivo' ? 'Sin objetivo' : `Objetivo ${obj}`);
 
     let html = `
       <div class="bg-white rounded shadow overflow-hidden">
         <div class="bg-gray-100 px-4 py-3 flex items-center gap-4">
-          <h2 class="font-bold text-lg flex-1">🎯 Objetivo ${obj}: ${OBJECTIVE_NAMES[obj]}</h2>
+          <h3 class="font-bold text-lg flex-1">🎯 ${name}</h3>
           <div class="flex-1 bg-gray-300 h-3 rounded-full">
-            <div class="bg-green-500 h-3 rounded-full" style="width:${porcentaje}%"></div>
+            <div class="bg-green-500 h-3 rounded-full" style="width:${pct}%"></div>
           </div>
-          <span class="ml-2 font-semibold text-green-700">${porcentaje}%</span>
+          <span class="ml-2 font-semibold text-green-700">${pct}%</span>
         </div>
+
         <table class="min-w-full">
           <thead class="bg-gray-50">
             <tr>
@@ -151,10 +167,10 @@ function renderGroupedTable() {
           <td class="py-2 px-4">${t.responsible}</td>
           <td class="py-2 px-4">${t.deadline}</td>
           <td class="py-2 px-4">
-            <select data-id="${t.id}" class="border rounded p-1" ${!canEdit?'disabled':''}>
-              <option ${t.status==='Pendiente'?'selected':''}>Pendiente</option>
-              <option ${t.status==='En Progreso'?'selected':''}>En Progreso</option>
-              <option ${t.status==='Completado'?'selected':''}>Completado</option>
+            <select data-id="${t.id}" class="border rounded p-1" ${!canEdit ? 'disabled' : ''}>
+              <option ${t.status==='Pendiente' ? 'selected' : ''}>Pendiente</option>
+              <option ${t.status==='En Progreso' ? 'selected' : ''}>En Progreso</option>
+              <option ${t.status==='Completado' ? 'selected' : ''}>Completado</option>
             </select>
           </td>
         </tr>
@@ -162,34 +178,47 @@ function renderGroupedTable() {
     });
 
     html += `</tbody></table></div>`;
-    container.innerHTML += html;
+    container.insertAdjacentHTML('beforeend', html);
   });
 
+  // attach listeners
   document.querySelectorAll('select[data-id]').forEach(sel=>{
     sel.addEventListener('change', async e=>{
-      const id = e.target.dataset.id;
-      const task = tasksData.find(x=>x.id == id);
-      task.status = e.target.value;
-      await saveTask(id, task.status);
-      updateUI();
+      const id = String(e.target.dataset.id);
+      const newStatus = e.target.value;
+      // update local copy
+      const task = tasksData.find(x => String(x.id) === id);
+      if (task) task.status = newStatus;
+      // save server
+      try {
+        await saveTask(id, newStatus);
+      } catch(err) {
+        console.error('save error', err);
+        alert('Error guardando en servidor');
+      }
+      // rerender
+      await reloadAndRender();
     });
   });
 }
 
-function updateCounters() {
-  const c = {'Pendiente':0,'En Progreso':0,'Completado':0};
-  tasksData.forEach(t=>c[t.status]++);
-  document.getElementById('pending-count').textContent = c['Pendiente'];
-  document.getElementById('progress-count').textContent = c['En Progreso'];
-  document.getElementById('completed-count').textContent = c['Completado'];
+/* contadores generales */
+function updateCounters(){
+  const c = {Pendiente:0,'En Progreso':0,Completado:0};
+  tasksData.forEach(t=>{ c[t.status] = (c[t.status]||0)+1; });
+  document.getElementById('pending-count').textContent = c['Pendiente'] || 0;
+  document.getElementById('progress-count').textContent = c['En Progreso'] || 0;
+  document.getElementById('completed-count').textContent = c['Completado'] || 0;
 }
 
-function updateUI(){
+async function reloadAndRender(){
+  await loadTasks();
   renderObjectiveSummary();
   renderGroupedTable();
   updateCounters();
 }
 
+/* handlers */
 document.addEventListener('DOMContentLoaded', async ()=>{
   document.querySelectorAll('.filter-btn').forEach(btn=>{
     btn.addEventListener('click', e=>{
@@ -200,25 +229,24 @@ document.addEventListener('DOMContentLoaded', async ()=>{
       });
       e.target.classList.remove('bg-gray-200','text-gray-800');
       e.target.classList.add('bg-blue-600','text-white');
-      updateUI();
+      reloadAndRender();
     });
   });
 
   document.getElementById('btnLogin').addEventListener('click', ()=>{
-    const clave = prompt("Ingrese la contraseña para habilitar edición:");
-    if(clave === PASSWORD){
+    const clave = prompt('Ingrese la contraseña para habilitar edición:');
+    if (clave === PASSWORD) {
       canEdit = true;
-      alert("✅ Edición habilitada");
-      updateUI();
+      alert('Edición habilitada');
+      // Re-render to enable selects
+      renderGroupedTable();
     } else {
-      alert("❌ Contraseña incorrecta");
+      alert('Contraseña incorrecta');
     }
   });
 
-  await loadTasks();
-  updateUI();
+  await reloadAndRender();
 });
 </script>
-
 </body>
 </html>
