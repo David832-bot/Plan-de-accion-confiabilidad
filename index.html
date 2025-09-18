@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Plan de Acción Interactivo</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
@@ -34,10 +33,10 @@
     <button id="btnLogin" class="bg-gray-800 text-white px-4 py-2 rounded">🔐 Iniciar sesión</button>
   </div>
 
-  <!-- 📋 AVANCE POR OBJETIVO -->
-  <div class="bg-white p-4 rounded shadow mt-6">
+  <!-- 📋 RESUMEN DE OBJETIVOS -->
+  <div class="bg-white p-4 rounded shadow">
     <h2 class="text-xl font-bold mb-3 text-center">🎯 Avance por Objetivo</h2>
-    <ul id="objective-list" class="space-y-2"></ul>
+    <ul id="objective-summary" class="space-y-2"></ul>
   </div>
 
   <!-- FILTROS -->
@@ -48,38 +47,8 @@
     <button data-filter="Completado" class="filter-btn bg-gray-200 px-4 py-2 rounded">Completadas</button>
   </div>
 
-  <!-- TABLA DE ACTIVIDADES -->
-  <table class="min-w-full bg-white border mt-4">
-    <thead class="bg-gray-100">
-      <tr>
-        <th class="py-2 px-4">ID</th>
-        <th class="py-2 px-4">Objetivo</th>
-        <th class="py-2 px-4">Actividad</th>
-        <th class="py-2 px-4">Responsable</th>
-        <th class="py-2 px-4">Plazo</th>
-        <th class="py-2 px-4">Estado</th>
-      </tr>
-    </thead>
-    <tbody id="task-table-body"></tbody>
-  </table>
-
-  <!-- GRAFICOS -->
-  <div class="grid grid-cols-2 gap-8">
-    <div class="bg-white p-4 rounded shadow">
-      <h2 class="font-bold mb-2 text-center">Estado General</h2>
-      <canvas id="statusChart"></canvas>
-    </div>
-    <div class="bg-white p-4 rounded shadow">
-      <h2 class="font-bold mb-2 text-center">Avance por Semana</h2>
-      <canvas id="ganttChart"></canvas>
-    </div>
-  </div>
-
-  <!-- GRAFICO DE OBJETIVOS -->
-  <div class="bg-white p-4 rounded shadow col-span-2">
-    <h2 class="font-bold mb-2 text-center">Avance % por Objetivo</h2>
-    <canvas id="objectiveChart"></canvas>
-  </div>
+  <!-- TABLA AGRUPADA POR OBJETIVO -->
+  <div id="grouped-table" class="mt-6 space-y-10"></div>
 
 </div>
 
@@ -115,25 +84,85 @@ function getFilteredTasks() {
   return tasksData.filter(t => t.status === currentFilter);
 }
 
-function renderTable() {
-  const tbody = document.getElementById('task-table-body');
-  tbody.innerHTML = '';
-  getFilteredTasks().forEach(t => {
-    tbody.innerHTML += `
-      <tr class="border-b">
-        <td class="py-2 px-4">${t.id}</td>
-        <td class="py-2 px-4">Objetivo ${t.objectiveId}: ${OBJECTIVE_NAMES[t.objectiveId]}</td>
-        <td class="py-2 px-4">${t.description}</td>
-        <td class="py-2 px-4">${t.responsible}</td>
-        <td class="py-2 px-4">${t.deadline}</td>
-        <td class="py-2 px-4">
-          <select data-id="${t.id}" class="border rounded p-1" ${!canEdit?'disabled':''}>
-            <option ${t.status==='Pendiente'?'selected':''}>Pendiente</option>
-            <option ${t.status==='En Progreso'?'selected':''}>En Progreso</option>
-            <option ${t.status==='Completado'?'selected':''}>Completado</option>
-          </select>
-        </td>
-      </tr>`;
+function renderObjectiveSummary() {
+  const container = document.getElementById('objective-summary');
+  container.innerHTML = '';
+  const objetivos = [...new Set(tasksData.map(t=>t.objectiveId))];
+
+  objetivos.forEach(obj => {
+    const group = tasksData.filter(t=>t.objectiveId === obj);
+    const total = group.length;
+    const comp = group.filter(t=>t.status === 'Completado').length;
+    const porcentaje = Math.round((comp/total)*100);
+
+    container.innerHTML += `
+      <li class="border rounded p-3 flex items-center gap-4">
+        <span class="font-bold w-1/3">Objetivo ${obj}: ${OBJECTIVE_NAMES[obj]}</span>
+        <div class="flex-1 bg-gray-200 rounded-full h-4">
+          <div class="bg-green-500 h-4 rounded-full" style="width:${porcentaje}%"></div>
+        </div>
+        <span class="text-sm text-gray-600">${comp}/${total} completadas</span>
+        <span class="font-bold text-green-700">${porcentaje}%</span>
+      </li>
+    `;
+  });
+}
+
+function renderGroupedTable() {
+  const container = document.getElementById('grouped-table');
+  container.innerHTML = '';
+
+  const tasks = getFilteredTasks();
+  const objetivos = [...new Set(tasks.map(t=>t.objectiveId))];
+
+  objetivos.forEach(obj => {
+    const group = tasks.filter(t=>t.objectiveId === obj);
+    const total = group.length;
+    const comp = group.filter(t=>t.status === 'Completado').length;
+    const porcentaje = Math.round((comp/total)*100);
+
+    let html = `
+      <div class="bg-white rounded shadow overflow-hidden">
+        <div class="bg-gray-100 px-4 py-3 flex items-center gap-4">
+          <h2 class="font-bold text-lg flex-1">🎯 Objetivo ${obj}: ${OBJECTIVE_NAMES[obj]}</h2>
+          <div class="flex-1 bg-gray-300 h-3 rounded-full">
+            <div class="bg-green-500 h-3 rounded-full" style="width:${porcentaje}%"></div>
+          </div>
+          <span class="ml-2 font-semibold text-green-700">${porcentaje}%</span>
+        </div>
+        <table class="min-w-full">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="py-2 px-4 border-b">ID</th>
+              <th class="py-2 px-4 border-b">Actividad</th>
+              <th class="py-2 px-4 border-b">Responsable</th>
+              <th class="py-2 px-4 border-b">Plazo</th>
+              <th class="py-2 px-4 border-b">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    group.forEach(t => {
+      html += `
+        <tr class="border-b">
+          <td class="py-2 px-4">${t.id}</td>
+          <td class="py-2 px-4">${t.description}</td>
+          <td class="py-2 px-4">${t.responsible}</td>
+          <td class="py-2 px-4">${t.deadline}</td>
+          <td class="py-2 px-4">
+            <select data-id="${t.id}" class="border rounded p-1" ${!canEdit?'disabled':''}>
+              <option ${t.status==='Pendiente'?'selected':''}>Pendiente</option>
+              <option ${t.status==='En Progreso'?'selected':''}>En Progreso</option>
+              <option ${t.status==='Completado'?'selected':''}>Completado</option>
+            </select>
+          </td>
+        </tr>
+      `;
+    });
+
+    html += `</tbody></table></div>`;
+    container.innerHTML += html;
   });
 
   document.querySelectorAll('select[data-id]').forEach(sel=>{
@@ -155,104 +184,10 @@ function updateCounters() {
   document.getElementById('completed-count').textContent = c['Completado'];
 }
 
-let statusChart, ganttChart, objectiveChart;
-
-function updateCharts() {
-  const ctx = document.getElementById('statusChart');
-  const counts = {'Pendiente':0,'En Progreso':0,'Completado':0};
-  tasksData.forEach(t=>counts[t.status]++);
-
-  if (statusChart) statusChart.destroy();
-  statusChart = new Chart(ctx, {
-    type:'bar',
-    data:{
-      labels:['Pendiente','En Progreso','Completado'],
-      datasets:[{
-        label:'Tareas',
-        data:[counts['Pendiente'],counts['En Progreso'],counts['Completado']],
-        backgroundColor:['#FDE68A','#93C5FD','#A7F3D0']
-      }]
-    },
-    options:{responsive:true,plugins:{legend:{display:false}}}
-  });
-
-  const gctx = document.getElementById('ganttChart');
-  const semanas = [...new Set(tasksData.map(t=>t.deadline))];
-  const datos = semanas.map(s=>tasksData.filter(t=>t.deadline===s).length);
-
-  if (ganttChart) ganttChart.destroy();
-  ganttChart = new Chart(gctx, {
-    type:'line',
-    data:{
-      labels:semanas,
-      datasets:[{
-        label:'Tareas por semana',
-        data:datos,
-        fill:true,
-        backgroundColor:'#BFDBFE',
-        borderColor:'#3B82F6'
-      }]
-    },
-    options:{responsive:true}
-  });
-
-  const octx = document.getElementById('objectiveChart');
-  const objetivos = [...new Set(tasksData.map(t=>t.objectiveId))];
-  const porcentajes = objetivos.map(obj => {
-    const total = tasksData.filter(t => t.objectiveId === obj).length;
-    const comp = tasksData.filter(t => t.objectiveId === obj && t.status === 'Completado').length;
-    return Math.round((comp / total) * 100);
-  });
-
-  if (objectiveChart) objectiveChart.destroy();
-  objectiveChart = new Chart(octx, {
-    type:'bar',
-    data:{
-      labels:objetivos.map(o=>`Obj ${o}: ${OBJECTIVE_NAMES[o]}`),
-      datasets:[{
-        label:'% Completado',
-        data:porcentajes,
-        backgroundColor:'#86EFAC'
-      }]
-    },
-    options:{
-      responsive:true,
-      scales:{y:{beginAtZero:true, max:100}},
-      plugins:{tooltip:{callbacks:{label:ctx=>ctx.parsed.y + '%'}}}
-    }
-  });
-}
-
-function renderObjectiveList() {
-  const container = document.getElementById('objective-list');
-  container.innerHTML = '';
-
-  const objetivos = [...new Set(tasksData.map(t => t.objectiveId))];
-
-  objetivos.forEach(obj => {
-    const actividades = tasksData.filter(t => t.objectiveId === obj);
-    const total = actividades.length;
-    const completadas = actividades.filter(t => t.status === 'Completado').length;
-    const porcentaje = Math.round((completadas / total) * 100);
-
-    container.innerHTML += `
-      <li class="border rounded p-2 flex items-center gap-4">
-        <span class="font-bold text-center w-1/3">Objetivo ${obj}: ${OBJECTIVE_NAMES[obj]}</span>
-        <div class="flex-1 bg-gray-200 rounded-full h-3">
-          <div class="bg-green-400 h-3 rounded-full" style="width:${porcentaje}%;"></div>
-        </div>
-        <span class="text-sm text-gray-600">${completadas}/${total} actividades</span>
-        <span class="font-bold text-green-700">${porcentaje}%</span>
-      </li>
-    `;
-  });
-}
-
 function updateUI(){
-  renderTable();
+  renderObjectiveSummary();
+  renderGroupedTable();
   updateCounters();
-  updateCharts();
-  renderObjectiveList();
 }
 
 document.addEventListener('DOMContentLoaded', async ()=>{
